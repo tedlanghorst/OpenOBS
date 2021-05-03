@@ -1,0 +1,13 @@
+C:\Users\Ted\Documents\GitHub\OpenOBS\OpenOBS_deployGUI\OpenOBS_deployGUI.exe
+C:\Users\Ted\Documents\GitHub\OpenOBS\OpenOBS_deployGUI\OpenOBS_deployGUI.dll
+C:\Users\Ted\Documents\GitHub\OpenOBS\OpenOBS_deployGUI\OpenOBS_deployGUI.deps.json
+C:\Users\Ted\Documents\GitHub\OpenOBS\OpenOBS_deployGUI\OpenOBS_deployGUI.runtimeconfig.json
+C:\Users\Ted\Documents\GitHub\OpenOBS\OpenOBS_deployGUI\OpenOBS_deployGUI.pdb
+C:\Users\Ted\Documents\GitHub\OpenOBS\OpenOBS_deployGUI\System.IO.Ports.dll
+C:\Users\Ted\Documents\GitHub\OpenOBS\OpenOBS_deployGUI\runtimes\linux-arm\native\libSystem.IO.Ports.Native.so
+C:\Users\Ted\Documents\GitHub\OpenOBS\OpenOBS_deployGUI\runtimes\linux-arm64\native\libSystem.IO.Ports.Native.so
+C:\Users\Ted\Documents\GitHub\OpenOBS\OpenOBS_deployGUI\runtimes\linux-x64\native\libSystem.IO.Ports.Native.so
+C:\Users\Ted\Documents\GitHub\OpenOBS\OpenOBS_deployGUI\runtimes\osx-x64\native\libSystem.IO.Ports.Native.dylib
+C:\Users\Ted\Documents\GitHub\OpenOBS\OpenOBS_deployGUI\runtimes\linux\lib\netstandard2.0\System.IO.Ports.dll
+C:\Users\Ted\Documents\GitHub\OpenOBS\OpenOBS_deployGUI\runtimes\osx\lib\netstandard2.0\System.IO.Ports.dll
+C:\Users\Ted\Documents\GitHub\OpenOBS\OpenOBS_deployGUI\runtimes\win\lib\netstandard2.0\System.IO.Ports.dll

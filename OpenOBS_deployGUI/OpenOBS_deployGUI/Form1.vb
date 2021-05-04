@@ -1,12 +1,15 @@
 ﻿Imports System.IO.SerialPort
+Imports System.Diagnostics
 Imports System.Threading
 
 Public Class Form1
-    'battery constants
-    Const battery_mah = 2500
+    'battery variables
     Const onCurrent = 120
     Const offCurrent = 0.005
     Const onTime = 5
+    Dim battery_mah = 2500
+    Dim battery_voltage = 3.2
+    Dim battery_mwh = battery_voltage * battery_mah
 
     Const textColumns = 39
 
@@ -24,6 +27,8 @@ Public Class Form1
         btnSend.BackColor = Color.DarkGray
         serialLog.ReadOnly = True
         serialLog.BackColor = Color.White
+
+        cbBattery.SelectedIndex = 0
 
         'Settings for SerialPort.
         comPort.BaudRate = 115200
@@ -68,17 +73,6 @@ Public Class Form1
         updateBattery()
     End Sub
 
-    Private Sub updateBattery()
-        Dim delaySeconds = GetDelaySeconds()
-        Dim remainingBattery = battery_mah - (offCurrent * delaySeconds)
-
-        Dim offTime = (dtpInterval.Value - #1970/1/1#).TotalSeconds - onTime
-        Dim averageCurrent = ((onCurrent * onTime) + (offCurrent * offTime)) / (offTime + onTime) 'weighted average current draw
-        Dim delayBattery_mah = battery_mah - (offCurrent * (delaySeconds / 3600))
-        Dim battery_days = delayBattery_mah / averageCurrent / 24 + (delaySeconds / 3600 / 24)
-        tbBattery.Text = Format(battery_days, "0.0")
-    End Sub
-
     Function GetDelaySeconds() As UInt32
         If cbContinuous.Checked Then
             '0 delay equal to continuous setting
@@ -117,16 +111,6 @@ Public Class Form1
         Dim sentence = message.Substring(StartIdx + 1, EndIdx - StartIdx - 1)
         Return GetChecksum(sentence).Equals(message.Substring(EndIdx + 1, 2))
     End Function
-
-    Private Sub dtpInterval_ValueChanged(sender As Object, e As EventArgs) Handles dtpInterval.ValueChanged
-        updateBattery()
-    End Sub
-    Private Sub dtpStartDate_ValueChanged(sender As Object, e As EventArgs) Handles dtpStartDate.ValueChanged
-        updateBattery()
-    End Sub
-    Private Sub dtpStartTime_ValueChanged(sender As Object, e As EventArgs) Handles dtpStartTime.ValueChanged
-        updateBattery()
-    End Sub
 
     Private Sub btnConnect_Click(sender As Object, e As EventArgs) Handles btnConnect.Click
         If btnConnect.Text.Equals("Connect") Then
@@ -215,6 +199,13 @@ Public Class Form1
         Next
     End Sub
 
+    Private Sub LinkLabel1_LinkClicked(sender As Object, e As LinkLabelLinkClickedEventArgs) Handles LinkLabel1.LinkClicked
+        Dim url As String = "https://github.com/tedlanghorst/OpenOBS/"
+        Dim psi As New ProcessStartInfo(url) With {.UseShellExecute = True}
+        Process.Start(psi)
+    End Sub
+
+
     Private Sub Timer1_Tick(sender As Object, e As EventArgs) Handles Timer1.Tick
         If comPort.IsOpen() = True Then
             Dim ReceivedMessage As String = comPort.ReadExisting()
@@ -225,4 +216,73 @@ Public Class Form1
             End If
         End If
     End Sub
+
+    Private Sub displayBatterySettings(show As Boolean)
+        lblCapacity.Visible = show
+        tbCapacity.Visible = show
+        lblVoltage.Visible = show
+        tbVoltage.Visible = show
+        cbRegulator.Visible = show
+        cbBoost.Visible = show
+    End Sub
+
+    Private Sub dtpInterval_ValueChanged(sender As Object, e As EventArgs) Handles dtpInterval.ValueChanged,
+        dtpStartDate.ValueChanged,
+        dtpStartTime.ValueChanged,
+        cbBattery.SelectedIndexChanged,
+        tbCapacity.TextChanged,
+        tbVoltage.TextChanged,
+        cbBoost.CheckedChanged,
+        cbRegulator.CheckedChanged
+
+        updateBattery()
+    End Sub
+
+    Private Sub updateBattery()
+        'get battery configuration
+        Select Case cbBattery.SelectedIndex()
+            Case 0
+                '2S Alkaline + boost
+                displayBatterySettings(False)
+                battery_mah = 2500
+                battery_voltage = 3.2
+
+                battery_mwh = battery_mah * battery_voltage
+            Case 1
+                '2S Lithium + regulator
+                displayBatterySettings(False)
+                battery_mah = 2500
+                battery_voltage = 7.2
+            Case 2
+                'USB battery pack
+                displayBatterySettings(False)
+                lblCapacity.Visible = True
+                tbCapacity.Visible = True
+                battery_voltage = 5
+                Try
+                    battery_mah = Integer.Parse(tbCapacity.Text)
+                Catch
+                    Return
+                End Try
+            Case 3
+                'custom battery settings
+                displayBatterySettings(True)
+                Try
+                    battery_mah = Integer.Parse(tbCapacity.Text)
+                    battery_voltage = Val(tbVoltage.Text)
+                Catch
+                    Return
+                End Try
+        End Select
+
+        Dim delaySeconds = GetDelaySeconds()
+        Dim remainingBattery = battery_mah - (offCurrent * delaySeconds)
+
+        Dim offTime = (dtpInterval.Value - #1970/1/1#).TotalSeconds - onTime
+        Dim averageCurrent = ((onCurrent * onTime) + (offCurrent * offTime)) / (offTime + onTime) 'weighted average current draw
+        Dim delayBattery_mah = battery_mah - (offCurrent * (delaySeconds / 3600))
+        Dim battery_days = delayBattery_mah / averageCurrent / 24 + (delaySeconds / 3600 / 24)
+        tbBattery.Text = Format(battery_days, "0.0")
+    End Sub
+
 End Class

@@ -56,7 +56,7 @@ float rtc_TEMP;
 
 //time settings
 long currentTime = 0;
-long sleepDuration_seconds = 60;
+long sleepDuration_seconds = 15;
 long delayedStart_seconds = 0;
 DateTime nextAlarm;
 DS3231 rtc; //create RTC object
@@ -64,8 +64,10 @@ DS3231 rtc; //create RTC object
 //SD vars
 #define SPI_SPEED SD_SCK_MHZ(50)
 char filename[] = "DDMMYYYY.TXT"; 
-SdFs sd;
-FsFile file;
+//SdFs sd;
+//FsFile file;
+SdFat sd;
+SdFile file;
 
 
 //ADC vars
@@ -80,20 +82,16 @@ Adafruit_ADS1115 ads1115(0x48); //address for ADDR connect to GND
  */
 
 void setup() {
-  delay(1000); //allow power to stabilize
-  
+  delay(100); //allow power to stabilize
+
+  //if anything writes to these before started, it will crash.
   Serial.begin(115200);
   Serial.setTimeout(50);
   Wire.begin();
 
   EEPROM.get(SN_ADDRESS, serialNumber);
-//  // Setting the SPI pins high helps some sd cards go to sleep faster
-//  pinMode(pChipSelect, OUTPUT); digitalWrite(pChipSelect, LOW); //ALWAYS pullup the ChipSelect pin with the SD library
-//  //and you may need to pullup MOSI/MISO, usually MOSIpin=11, and MISOpin=12 if you do not already have hardware pulls
-//  pinMode(11, OUTPUT);digitalWrite(11, HIGH); //pullup the MOSI pin on the SD card module
-//  pinMode(12, INPUT_PULLUP); //pullup the MISO pin on the SD card module
 
-
+  
   /* With power  switching between measurements, we need to know what kind of setup() this is.
    *  First, check if the firmware upload time is different than the stored time.
    *  Next, check if the GUI connection forced a reset.
@@ -209,9 +207,10 @@ void setup() {
  */
 
 void loop() {
-  //set the next alarm
+  //set the next alarm right away. Check it hasn't passed later.
   DateTime wakeTime = rtc.now(); //get the current time
-  rtc.enableAlarm(wakeTime.unixtime() + sleepDuration_seconds);
+  nextAlarm = DateTime(wakeTime.unixtime() + sleepDuration_seconds);
+  rtc.enableAlarm(nextAlarm);
   setBBSQW(); //enable battery-backed alarm
   
   digitalWrite(pIRED, HIGH);
@@ -220,11 +219,6 @@ void loop() {
   file.open(filename,O_WRITE | O_APPEND);
   for (int i = 0; i < NUM_SAMPLES; i++) {
     readBuffer = ads1115.readADC_SingleEnded(0);
-
-//    char print_string[40];
-//    sprintf(print_string,"%010u,%05u,%05u,%05u,%05u,",rtc.now().unixtime(),reading1,reading2,reading3,reading4);
-//    Serial.println(rtc.now().unixtime());
-//    Serial.println(print_string);
 
     int gain = 1;
     
@@ -238,7 +232,6 @@ void loop() {
     file.print(gain);
     file.print(',');
     if (i==0){
-//      rtc.convertTemperature(); //temp updates every 64 seconds otherwise.
       file.println(rtc.getTemperature());
     }
     else {
@@ -250,26 +243,15 @@ void loop() {
       sprintf(messageBuffer,"%04u,%05u",i+1,readBuffer);
       serialSend(messageBuffer);
     }
-    
-//    Serial.print(i);
-//    Serial.print('\t');
-//    Serial.println(readBuffer);
-//    Serial.print('\t');
-//    Serial.print(reading2);
-//    Serial.print('\t');
-//    Serial.print(reading3);
-//    Serial.print('\t');
-//    Serial.println(reading4);
   }
-  file.flush();
   file.close();
 
   //ensure a 5 second margin for the next alarm before shutting down.
   //if the alarm we set during this wake has already passed, the OBS will never wake up.
-  if((rtc.now().unixtime()-wakeTime.unixtime()) < (sleepDuration_seconds+5)){
-    serialSend("shutting down");
+  long alarmDelta = rtc.now().unixtime()-wakeTime.unixtime();
+  if(alarmDelta < (sleepDuration_seconds-5)){
+    serialSend("POWEROFF,1");
     rtc.clearAlarm();
-  
-    delay(sleepDuration_seconds*1000); //mimic power off.
+    delay((sleepDuration_seconds - alarmDelta)*1000); //mimic power off.
   }
 }

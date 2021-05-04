@@ -39,27 +39,3 @@ void setBBSQW(){
   ctReg |= 0b01000000;
   rtc.writeRegister(DS3231_CONTROL_REG,ctReg); 
 }
-
-/*
-//Called by the interrupt when it is triggered by the RTC
-//continues loop() after exiting. Keep execution very short.
-void interruptRoutine() {
-  //first it Disables the interrupt so it doesn't get retriggered
-  detachInterrupt(digitalPinToInterrupt(pAlarmInterrupt));
-  Serial.println("awake");
-}
-
-//Puts the MCU into power saving sleep mode and sets the wake time
-void enterSleep(DateTime& dt) { //argument is Wake Time as a DateTime object
-  rtc.clearAlarm(); //resets the alarm interrupt status on the RTC
-  rtc.enableAlarm(dt); //Sets the alarm on the RTC to the specified time (using the DateTime Object passed in)
-  attachInterrupt(digitalPinToInterrupt(pAlarmInterrupt), interruptRoutine, FALLING);
-  digitalWrite(pIRED, LOW);
-  digitalWrite(pVoltageDivider,LOW);
-  Serial.println("power down");
-  delay(100); //wait for a moment for everything to complete
-  LowPower.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_OFF); //power down everything until the alarm fires
-}
-
-
-*/

@@ -18,7 +18,7 @@
 #include <Adafruit_ADS1015.h>   // https://github.com/adafruit/Adafruit_ADS1X15
 #include <DS3231.h>             // https://github.com/kinasmith/DS3231
 #include <SdFat.h>              // https://github.com/greiman/SdFat //uses 908 bytes of memory
-
+#include <LowPower.h>
 /*
  *  CONFIGURATION SETTINGS
  */
@@ -36,7 +36,7 @@ const uint16_t NUM_SAMPLES = 1000;
 //connected pins
 #define pVoltageDivider 4    //voltage divider
 #define pIRED A3             //IR emitter
-#define pAlarmInterrupt 2    //alarm interrupt from RTC
+#define pInterrupt 2    //alarm interrupt from RTC
 #define pChipSelect 10       //chip select pin for SD card
 
 //EEPROM addresses
@@ -55,7 +55,7 @@ float rtc_TEMP;
 
 //time settings
 long currentTime = 0;
-long sleepDuration_seconds = 15;
+long sleepDuration_seconds = 600;
 long delayedStart_seconds = 0;
 DateTime nextAlarm;
 DS3231 rtc; //create RTC object
@@ -81,14 +81,14 @@ Adafruit_ADS1115 ads1115(0x48); //address for ADDR connect to GND
  */
 
 void setup() {
-  delay(100); //allow power to stabilize
-
   //if anything writes to these before started, it will crash.
   Serial.begin(115200);
   Serial.setTimeout(50);
   Wire.begin();
 
   EEPROM.get(SN_ADDRESS, serialNumber);
+
+  pinMode(pInterrupt, INPUT_PULLUP);
 
   
   /* With power  switching between measurements, we need to know what kind of setup() this is.
@@ -187,12 +187,9 @@ void setup() {
       }
     }
   }
-  updateFilename();
-  sprintf(messageBuffer,"FILE,OPEN,%s\0",filename);
-  serialSend(messageBuffer);
-
-  sprintf(messageBuffer,"SLEEP,%d\0",sleepDuration_seconds);
-  serialSend(messageBuffer);
+//  updateFilename();
+//  sprintf(messageBuffer,"FILE,OPEN,%s\0",filename);
+//  serialSend(messageBuffer);
 }
 
 
@@ -209,12 +206,11 @@ void loop() {
   //set the next alarm right away. Check it hasn't passed later.
   DateTime wakeTime = rtc.now(); //get the current time
   nextAlarm = DateTime(wakeTime.unixtime() + sleepDuration_seconds);
-  rtc.enableAlarm(nextAlarm);
-  setBBSQW(); //enable battery-backed alarm
+
   
   digitalWrite(pIRED, HIGH);
   digitalWrite(pVoltageDivider,HIGH);
-//  updateFilename();
+  updateFilename();
   file.open(filename,O_WRITE | O_APPEND);
   for (int i = 0; i < NUM_SAMPLES; i++) {
     readBuffer = ads1115.readADC_SingleEnded(0);
@@ -250,7 +246,6 @@ void loop() {
   long alarmDelta = rtc.now().unixtime()-wakeTime.unixtime();
   if(alarmDelta < (sleepDuration_seconds-5)){
     serialSend("POWEROFF,1");
-    rtc.clearAlarm();
-    delay((sleepDuration_seconds - alarmDelta)*1000); //mimic power off.
+    enterSleep(nextAlarm);
   }
 }

@@ -119,7 +119,7 @@ void setup() {
       sprintf(messageBuffer,"OPENOBS,%u",serialNumber);
       serialSend(messageBuffer);
       delay(100); //allow time for the gui to process/respond.
-      if(serialReceive(&messageBuffer[0],MAX_CHAR)){
+      if(serialReceive(&messageBuffer[0])){
         if(strncmp(messageBuffer,"$OPENOBS",8)==0){
           guiConnected = true;
           clk_init = rtc.begin(); //reset the rtc
@@ -167,7 +167,7 @@ void setup() {
     //wait while user picks settings and clicks 'send' button.
     while(true){
       delay(100); 
-      if(serialReceive(&messageBuffer[0],MAX_CHAR)){
+      if(serialReceive(&messageBuffer[0])){
         //hardcoded order of settings string.
         char *tmpbuf;
         tmpbuf = strtok(messageBuffer,",");
@@ -191,18 +191,15 @@ void setup() {
   sprintf(messageBuffer,"FILE,OPEN,%s\0",filename);
   serialSend(messageBuffer);
 
-  sprintf(messageBuffer,"SLEEP,%d\0",sleepDuration_seconds);
-  serialSend(messageBuffer);
 }
 
 
 /* LOOP
- *  calculate new alarm time
+ *  set the next alarm
  *  open the SD card file
  *  read ADC and write to SD
  *  close the SD file.
- *  set next alarm
- *  go to sleep
+ *  go to sleep (unless continuous mode)
  */
 
 void loop() {
@@ -214,7 +211,6 @@ void loop() {
   
   digitalWrite(pIRED, HIGH);
   digitalWrite(pVoltageDivider,HIGH);
-//  updateFilename();
   file.open(filename,O_WRITE | O_APPEND);
   for (int i = 0; i < NUM_SAMPLES; i++) {
     readBuffer = ads1115.readADC_SingleEnded(0);
@@ -237,8 +233,8 @@ void loop() {
       file.println();
     }
     
-//    print some sample data to the gui for a bit
-    if ((i+1)%100==0){
+    // print some sample data while gui connected 
+    if ((i+1)%100==0 && guiConnected){
       sprintf(messageBuffer,"%04u,%05u",i+1,readBuffer);
       serialSend(messageBuffer);
     }

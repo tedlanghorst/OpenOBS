@@ -4,6 +4,7 @@ void updateFilename(){
   snprintf(filename, 13, "%02u%02u%04u.TXT", now.date(), now.month(), now.year());
 
   SdFile::dateTimeCallback(dateTime_callback);
+  //if we create a new file with this name, set header
   if (file.open(filename, O_CREAT | O_EXCL | O_WRITE)) {
     
     file.println((__FlashStringHelper*)contactInfo);

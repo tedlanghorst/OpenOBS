@@ -1,16 +1,17 @@
 /*
   Test strings for serial monitor
   $OPENOBS*4A
-  $SET,1616605996,900*7E
+  $SET,1616605996,10*7E
 */
 
 /*TODO
-  - Find next wake time at begining of sampling, not the end. It should occur every x seconds, not x seconds + sampling time.
-    Need to make sure the time has not already passed before going to sleep.
-  - write/implement error_shutdown() function.
-  - make sure sleepDuration is correctly set if loading new code.
-  --> store code upload time in a specific address
-  --> if the upload time is different than stored value, then new firmware was loaded.
+  - find/create more stable libraries. 
+    - ADS1x15 has been refactored and new versions are incompatible
+    - DS3231 library is not the commonly used one.
+  - take background measurements to estimate daylight issues.
+  - implement error_shutdown() function to save battery.
+  - look into reading SD card data out over serial for the GUI.
+    - All files? or, list files and let GUI pick.
 */
 #include <Wire.h>               //standard library
 #include <SPI.h>                //standard library
@@ -45,6 +46,7 @@ const uint16_t NUM_SAMPLES = 1000;
 #define UPLOAD_TIME_ADDRESS 502
 
 //communications vars
+bool guiConnected = false;
 const uint16_t COMMS_WAIT = 500;   //ms delay to try gui connection
 const int MAX_CHAR = 40;            //max character in NMEA-style string
 char messageBuffer[MAX_CHAR];       //buffer for sending and receiving comms
@@ -97,7 +99,6 @@ void setup() {
    *  If neither, we assume this is a power cycle during deployment and use stored settings.
    */
   bool updatedFirmware = false;
-  bool guiConnected = false;
   bool clk_init = true;
 
   //if new firmware was updated, then take all those settings and time.
@@ -209,9 +210,28 @@ void loop() {
   rtc.enableAlarm(nextAlarm);
   setBBSQW(); //enable battery-backed alarm
   
-  digitalWrite(pIRED, HIGH);
   digitalWrite(pVoltageDivider,HIGH);
+
+  //background measurements
+  digitalWrite(pIRED,LOW);
   file.open(filename,O_WRITE | O_APPEND);
+  for (int i = 0; i < 100; i++) {
+    readBuffer = ads1115.readADC_SingleEnded(0);
+    file.print(rtc.now().unixtime());
+    file.print(',');
+    file.print(readBuffer);
+    file.print(',');
+    file.print(0);
+    file.print(',');
+    file.print(0);
+    file.println(',');
+  }
+
+  sprintf(messageBuffer,"%04u,%05d",0,readBuffer);
+  serialSend(messageBuffer);
+
+  //illuminated measurements
+  digitalWrite(pIRED, HIGH);
   for (int i = 0; i < NUM_SAMPLES; i++) {
     readBuffer = ads1115.readADC_SingleEnded(0);
 
@@ -234,8 +254,8 @@ void loop() {
     }
     
     // print some sample data while gui connected 
-    if ((i+1)%100==0 && guiConnected){
-      sprintf(messageBuffer,"%04u,%05u",i+1,readBuffer);
+    if ((i+1)%100==0){
+      sprintf(messageBuffer,"%04u,%05d",i+1,readBuffer);
       serialSend(messageBuffer);
     }
   }

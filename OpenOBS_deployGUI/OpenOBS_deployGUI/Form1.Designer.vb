@@ -218,9 +218,9 @@ Partial Class Form1
         Me.cbRegulator.AutoSize = True
         Me.cbRegulator.Location = New System.Drawing.Point(214, 489)
         Me.cbRegulator.Name = "cbRegulator"
-        Me.cbRegulator.Size = New System.Drawing.Size(113, 24)
+        Me.cbRegulator.Size = New System.Drawing.Size(136, 24)
         Me.cbRegulator.TabIndex = 25
-        Me.cbRegulator.Text = "5V regulator"
+        Me.cbRegulator.Text = "Linear regulator"
         Me.cbRegulator.UseVisualStyleBackColor = True
         Me.cbRegulator.Visible = False
         '
@@ -238,7 +238,7 @@ Partial Class Form1
         'cbBattery
         '
         Me.cbBattery.FormattingEnabled = True
-        Me.cbBattery.Items.AddRange(New Object() {"Alkaline AA 2S + boost converter", "Lithium AA 2S +  5V regulator", "USB battery bank", "Custom"})
+        Me.cbBattery.Items.AddRange(New Object() {"1.5V Litihum AA 2S + boost converter", "Alkaline AA 2S + boost converter", "NiMH AA 2S + boost converter", "3.7V Lithium AA 2S +  5V regulator", "USB battery bank direct", "Custom"})
         Me.cbBattery.Location = New System.Drawing.Point(23, 420)
         Me.cbBattery.Name = "cbBattery"
         Me.cbBattery.Size = New System.Drawing.Size(269, 28)

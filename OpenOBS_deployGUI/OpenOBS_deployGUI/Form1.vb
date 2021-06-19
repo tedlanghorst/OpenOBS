@@ -4,12 +4,14 @@ Imports System.Threading
 
 Public Class Form1
     'battery variables
-    Const onCurrent = 120
+    Const onCurrent = 60
     Const offCurrent = 0.005
-    Const onTime = 5
+    Const onTime = 6
+    Dim operating_voltage = 5
     Dim battery_mah = 2500
     Dim battery_voltage = 3.2
-    Dim battery_mwh = battery_voltage * battery_mah
+    Dim boost_efficiency = 0.9
+    Dim usable_mwh = battery_voltage * battery_mah * boost_efficiency
 
     Const textColumns = 39
 
@@ -230,30 +232,48 @@ Public Class Form1
         dtpStartDate.ValueChanged,
         dtpStartTime.ValueChanged,
         cbBattery.SelectedIndexChanged,
-        tbCapacity.TextChanged,
-        tbVoltage.TextChanged,
         cbBoost.CheckedChanged,
         cbRegulator.CheckedChanged
+        'tbCapacity.TextChanged,
+        'tbVoltage.TextChanged,
 
         updateBattery()
+    End Sub
+
+    Private Sub tbCapacity_ValueChanged(sender As Object, e As EventArgs) Handles tbCapacity.TextChanged, tbVoltage.TextChanged
+        updateBattery()
+        sender.Focus()
+        'tbCapacity.SelectionStart = tbCapacity.Text.Length
     End Sub
 
     Private Sub updateBattery()
         'get battery configuration
         Select Case cbBattery.SelectedIndex()
             Case 0
+                '1.5V Lithium AA 2S + boost
+                displayBatterySettings(False)
+                battery_mah = 3100
+                battery_voltage = 3.2
+                usable_mwh = battery_mah * battery_voltage * boost_efficiency
+            Case 1
                 '2S Alkaline + boost
                 displayBatterySettings(False)
-                battery_mah = 2500
+                battery_mah = 2000
                 battery_voltage = 3.2
-
-                battery_mwh = battery_mah * battery_voltage
-            Case 1
-                '2S Lithium + regulator
+                usable_mwh = battery_mah * battery_voltage * boost_efficiency
+            Case 2
+                '2S NiMH + boost
+                displayBatterySettings(False)
+                battery_mah = 2000
+                battery_voltage = 3.2
+                usable_mwh = battery_mah * battery_voltage * boost_efficiency
+            Case 3
+                '3.7V Lithium AA 2S + regulator
                 displayBatterySettings(False)
                 battery_mah = 2500
                 battery_voltage = 7.2
-            Case 2
+                usable_mwh = battery_mah * operating_voltage 'regulator wastes all voltage above 5.
+            Case 4
                 'USB battery pack
                 displayBatterySettings(False)
                 lblCapacity.Visible = True
@@ -264,24 +284,40 @@ Public Class Form1
                 Catch
                     Return
                 End Try
-            Case 3
+                usable_mwh = battery_mah * 4.8 'most packs output ~4.8V.
+            Case 5
                 'custom battery settings
                 displayBatterySettings(True)
+                Dim boost = cbBoost.Checked
+                Dim regulator = cbRegulator.Checked
                 Try
                     battery_mah = Integer.Parse(tbCapacity.Text)
                     battery_voltage = Val(tbVoltage.Text)
                 Catch
                     Return
                 End Try
+
+                If boost And Not regulator Then
+                    usable_mwh = battery_mah * battery_voltage * boost_efficiency
+                ElseIf Not boost And regulator Then
+                    usable_mwh = battery_mah * operating_voltage
+                ElseIf Not boost And Not regulator And battery_voltage > 4.5 And battery_voltage < 5.5 Then
+                    'Don't do this, unregulated battery voltage could cause measurement drift.
+                    usable_mwh = battery_mah * battery_voltage
+                Else
+                    'Really don't do this. Either won't work or will destroy the sensor.
+                    usable_mwh = 0
+                End If
         End Select
 
         Dim delaySeconds = GetDelaySeconds()
-        Dim remainingBattery = battery_mah - (offCurrent * delaySeconds)
-
+        Dim delayBattery_mwh = usable_mwh - (offCurrent * operating_voltage * (delaySeconds / 3600))
         Dim offTime = (dtpInterval.Value - #1970/1/1#).TotalSeconds - onTime
-        Dim averageCurrent = ((onCurrent * onTime) + (offCurrent * offTime)) / (offTime + onTime) 'weighted average current draw
-        Dim delayBattery_mah = battery_mah - (offCurrent * (delaySeconds / 3600))
-        Dim battery_days = delayBattery_mah / averageCurrent / 24 + (delaySeconds / 3600 / 24)
+        If offTime < 0 Then
+            offTime = 0
+        End If
+        Dim averageConsumption_mw = ((onCurrent * onTime) + (offCurrent * offTime)) / (offTime + onTime) * operating_voltage 'weighted average current draw
+        Dim battery_days = delayBattery_mwh / averageConsumption_mw / 24 + (delaySeconds / 3600 / 24)
         tbBattery.Text = Format(battery_days, "0.0")
     End Sub
 

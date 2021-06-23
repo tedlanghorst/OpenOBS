@@ -13,12 +13,18 @@
   - look into reading SD card data out over serial for the GUI.
     - All files? or, list files and let GUI pick.
 */
+
+/*LIBRARIES
+ *  The first three libraries are included in standard Arduino IDE installations
+ *  The last three libraries should be be downloaded from github and installed manually.
+ *  Additionally, the Adafruit_ADS1015 library requires the Adafruit_I2CDevice library, if you do not already have it.
+ */
 #include <Wire.h>               //standard library
 #include <SPI.h>                //standard library
 #include <EEPROM.h>             //standard library
-#include <Adafruit_ADS1015.h>   // https://github.com/adafruit/Adafruit_ADS1X15
-#include <DS3231.h>             // https://github.com/kinasmith/DS3231
-#include <SdFat.h>              // https://github.com/greiman/SdFat //uses 908 bytes of memory
+#include <Adafruit_ADS1015.h>   //Version 2.2.0  https://github.com/adafruit/Adafruit_ADS1X15
+#include <SdFat.h>              //Version 2.0.7 https://github.com/greiman/SdFat //uses 908 bytes of memory
+#include <DS3231.h>             //Updated Jan 2, 2017 https://github.com/kinasmith/DS3231
 
 /*
  *  CONFIGURATION SETTINGS
@@ -32,6 +38,7 @@ const char dataColumnLabels[] PROGMEM = "time,R0,Rv,gain,temp"; //could shift to
 uint16_t serialNumber;
 
 //sampling constants
+const uint16_t NUM_BACKGROUND = 100;
 const uint16_t NUM_SAMPLES = 1000;
 
 //connected pins
@@ -65,15 +72,13 @@ DS3231 rtc; //create RTC object
 //SD vars
 #define SPI_SPEED SD_SCK_MHZ(50)
 char filename[] = "DDMMYYYY.TXT"; 
-//SdFs sd;
-//FsFile file;
 SdFat sd;
 SdFile file;
 
 
 //ADC vars
-Adafruit_ADS1115 ads1115(0x48); //address for ADDR connect to GND
-
+//Adafruit_ADS1115 ads1115(0x48); //address for ADDR connect to GND
+Adafruit_ADS1115 ads;
 
 /* SETUP
  *  try to establish coms with GUI
@@ -145,19 +150,22 @@ void setup() {
   }
 
   //initialize the ADC
-  ads1115.begin();  // Initialize ads1115
-  ads1115.setGain(GAIN_ONE); //reset gain
-  ads1115.setSPS(ADS1115_DR_860SPS); //set the sampling speed
-  ads1115.readADC_SingleEnded(0); //throw one reading away. Seems to come up bad.
-  bool adc_init = ads1115.readADC_SingleEnded(0) != -1;
+  ads.setGain(GAIN_TWOTHIRDS); //reset gain
+  ads.begin();  // Initialize ads1115
+  ads.setSPS(ADS1115_DR_860SPS); //set the sampling speed
+  ads.readADC_SingleEnded(0); //throw one reading away. Seems to come up bad.
+  bool adc_init = ads.readADC_SingleEnded(0) != -1;
   if(!adc_init) {
     serialSend("ADCINIT,0");
   }
 
   //turn off battery power and stop program.
+  //should set another alarm to try again- 
+  //intermittent issues shouldnt end entire deploy.
+  //RTC errors likely are fatal though.
   if(!sd_init | !clk_init | !adc_init){
     rtc.clearAlarm();
-    while(true);
+//    while(true);
   }
   
   //if we have established a connection to the java gui, 
@@ -215,8 +223,8 @@ void loop() {
   //background measurements
   digitalWrite(pIRED,LOW);
   file.open(filename,O_WRITE | O_APPEND);
-  for (int i = 0; i < 100; i++) {
-    readBuffer = ads1115.readADC_SingleEnded(0);
+  for (int i = 0; i < NUM_BACKGROUND; i++) {
+    readBuffer = ads.readADC_SingleEnded(0);
     file.print(rtc.now().unixtime());
     file.print(',');
     file.print(readBuffer);
@@ -233,7 +241,7 @@ void loop() {
   //illuminated measurements
   digitalWrite(pIRED, HIGH);
   for (int i = 0; i < NUM_SAMPLES; i++) {
-    readBuffer = ads1115.readADC_SingleEnded(0);
+    readBuffer = ads.readADC_SingleEnded(0);
 
     int gain = 1;
     
@@ -242,7 +250,7 @@ void loop() {
     file.print(readBuffer);
     file.print(',');
     file.print(0);
-//    file.print(ads1115.readADC_SingleEnded(gain));
+//    file.print(ads.readADC_SingleEnded(gain));
     file.print(',');
     file.print(gain);
     file.print(',');
@@ -253,7 +261,7 @@ void loop() {
       file.println();
     }
     
-    // print some sample data while gui connected 
+    // print some data for inspection and to blink the TX lights.
     if ((i+1)%100==0){
       sprintf(messageBuffer,"%04u,%05d",i+1,readBuffer);
       serialSend(messageBuffer);

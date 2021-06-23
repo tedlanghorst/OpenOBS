@@ -14,13 +14,13 @@ elseif isa(file,'char')
 end
 
 %look for the sensor serial number in each file.
-sn = NaN(numel(filepaths),1);
+file_sn = NaN(numel(filepaths),1);
 for i = 1:numel(filepaths)
     fid = fopen(filepaths{i});
     for j = 1:5 %scan first 5 lines
         tline = fgetl(fid);
         if contains(tline,"OpenOBS SN:")
-            sn(i) = str2double(tline(12:end));
+            file_sn(i) = str2double(tline(12:end));
             break
         end
     end
@@ -29,26 +29,34 @@ end
 
 %create a table for each serial number.
 %store in a cell array with corresponding SN array.
-[sn,~,fileSN] = unique(sn);
+sn = unique(file_sn);
 for i = 1:numel(sn)
     burstID = [];
-    timeInterp = [];
+%     timeInterp = [];
     
     tmp = table();
-    for j = find(sn(i)==fileSN)'
+    for j = find(sn(i)==file_sn)'
         tmp = [tmp; readtable(filepaths{j})];
     end
+    
+    tmp.dt = datetime(tmp.time, 'ConvertFrom', 'posixtime','Format','dd-MM-yyyy HH:mm:ss.SSSS');
+    isWrongDay = tmp.dt < datetime(file(1:8),'InputFormat','ddMMyyyy');
+    tmp(isWrongDay,:) = [];
+    isWrongDay = tmp.dt > datetime(file(1:8),'InputFormat','ddMMyyyy') + 1;
+    tmp(isWrongDay,:) = [];
     
     measIdx = [find(~isnan(tmp.temp)); height(tmp.temp)+1];
     for j = 1:numel(measIdx)-1
         idx = measIdx(j):measIdx(j+1)-1;
         burstID(idx,1) = j;
-        timeInterp(idx,1) = linspace(min(tmp.time(idx)),max(tmp.time(idx)),numel(tmp.time(idx)));
+        tmp.timeInterp(idx,1) = linspace(min(tmp.dt(idx)),max(tmp.dt(idx)),numel(tmp.dt(idx)));
     end
     tmp.burstID = burstID;
-    tmp.timeInterp = datetime(timeInterp, 'ConvertFrom', 'posixtime' );
-    tmp.dt = datetime(tmp.time, 'ConvertFrom', 'posixtime' );
-    tmp.R0_V = tmp.R0 ./ 2^15 .*5;
+%     tmp.timeInterp = datetime(timeInterp, 'ConvertFrom', 'posixtime','Format','dd-MM-yyyy HH:mm:ss.SSSS');
+    
+    tmp.R0_V = tmp.R0 ./ 2^15 .* 5;
+    
+
     
     d{i,1} = tmp;
 end
@@ -67,18 +75,20 @@ end
 % end
 
 
-clearvars -except sn d
+% clearvars -except sn d
 
 
 %% plots
 close all
 
 figure
-subplot(2,1,1)
+set(gcf,'Units','normalized')
+set(gcf,'Position',[0.1 0.1 0.8 0.8])
 hold on
 for i = 1:numel(d)
     legendStrings{i} = sprintf("OpenOBS %d",sn(i));
     plot(d{i}.timeInterp,d{i}.R0_V,'.')
+%     plot(d{i}.dt,d{i}.R0_V,'.')
 end
 
 legend(legendStrings)

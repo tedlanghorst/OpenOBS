@@ -1,6 +1,7 @@
 # OpenOBS
-
 Optical backscatter sensors are instruments commonly used in scientific research and water quality management to determine the turbidity (cloudiness) of water, or how much particulate matter is in the water. OpenOBS is an academic research project to develop an open source, affordable, and accurate OBS using an Arduino microcontroller and off-the-shelf electronics. While commercial sensors cost upwards of \$1000, OpenOBS can be built for about \$50. This low-cost alternative allows us to more extensively monitor natural systems, or use in high-risk environments, where deployment of a large number of commercial sensors would be cost-prohibitive.
+
+read the preprint! https://eartharxiv.org/repository/view/2453/
 
 <p align="center">
   <img src="images/OBS1.png" />

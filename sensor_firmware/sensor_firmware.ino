@@ -150,7 +150,7 @@ void setup() {
   }
 
   //initialize the ADC
-  ads.setGain(GAIN_TWOTHIRDS); //reset gain
+  ads.setGain(GAIN_ONE); //reset gain
   ads.begin();  // Initialize ads1115
   ads.setSPS(ADS1115_DR_860SPS); //set the sampling speed
   ads.readADC_SingleEnded(0); //throw one reading away. Seems to come up bad.
@@ -165,7 +165,7 @@ void setup() {
   //RTC errors likely are fatal though.
   if(!sd_init | !clk_init | !adc_init){
     rtc.clearAlarm();
-//    while(true);
+    while(true);
   }
   
   //if we have established a connection to the java gui, 

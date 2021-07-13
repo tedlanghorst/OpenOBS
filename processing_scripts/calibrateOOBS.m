@@ -30,7 +30,7 @@ isWrongDay = data.dt > datetime(file(1:8),'InputFormat','ddMMyyyy') + 1;
 data(isWrongDay,:) = [];
 
 %loop through the bursts
-measIdx = [find(~isnan(data.temp)); height(data.temp)+1];
+measIdx = [find(~isnan(data.temp)); length(data.temp)+1];
 for j = 1:numel(measIdx)-1
     idx = measIdx(j):measIdx(j+1)-1;
     data.burstID(idx,1) = j-1;
@@ -156,9 +156,10 @@ ylabel("Calibration - Standard (NTU)");
 title('Calibration Error')
 axis square
 box on
+set(gca,'XScale','log')
 xlim = get(gca,'XLim');
 plot(xlim,[0,0],'k--','Linewidth',1)
-set(gca,'XScale','log')
+
 % set(gca,'YScale','log')
 
 

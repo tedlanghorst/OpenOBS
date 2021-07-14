@@ -22,7 +22,7 @@
 #include <Wire.h>               //standard library
 #include <SPI.h>                //standard library
 #include <EEPROM.h>             //standard library
-#include <Adafruit_ADS1015.h>   //Version 2.2.0  https://github.com/adafruit/Adafruit_ADS1X15
+#include <Adafruit_ADS1X15.h>   //Version 2.2.0  https://github.com/adafruit/Adafruit_ADS1X15
 #include <SdFat.h>              //Version 2.0.7 https://github.com/greiman/SdFat //uses 908 bytes of memory
 #include <DS3231.h>             //Updated Jan 2, 2017 https://github.com/kinasmith/DS3231
 
@@ -44,7 +44,6 @@ const uint16_t NUM_SAMPLES = 1000;
 //connected pins
 #define pVoltageDivider 4    //voltage divider
 #define pIRED A3             //IR emitter
-#define pAlarmInterrupt 2    //alarm interrupt from RTC
 #define pChipSelect 10       //chip select pin for SD card
 
 //EEPROM addresses
@@ -75,9 +74,7 @@ char filename[] = "DDMMYYYY.TXT";
 SdFat sd;
 SdFile file;
 
-
 //ADC vars
-//Adafruit_ADS1115 ads1115(0x48); //address for ADDR connect to GND
 Adafruit_ADS1115 ads;
 
 /* SETUP
@@ -150,9 +147,9 @@ void setup() {
   }
 
   //initialize the ADC
-  ads.setGain(GAIN_TWOTHIRDS); //reset gain
-  ads.begin();  // Initialize ads1115
-  ads.setSPS(ADS1115_DR_860SPS); //set the sampling speed
+  ads.setGain(GAIN_ONE); //reset gain
+  ads.begin(0x48);  // Initialize ads1115
+  ads.setDataRate(RATE_ADS1115_860SPS); //set the sampling speed
   ads.readADC_SingleEnded(0); //throw one reading away. Seems to come up bad.
   bool adc_init = ads.readADC_SingleEnded(0) != -1;
   if(!adc_init) {
@@ -165,7 +162,7 @@ void setup() {
   //RTC errors likely are fatal though.
   if(!sd_init | !clk_init | !adc_init){
     rtc.clearAlarm();
-//    while(true);
+    while(true);
   }
   
   //if we have established a connection to the java gui, 

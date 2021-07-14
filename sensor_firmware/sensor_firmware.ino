@@ -44,7 +44,6 @@ const uint16_t NUM_SAMPLES = 1000;
 //connected pins
 #define pVoltageDivider 4    //voltage divider
 #define pIRED A3             //IR emitter
-#define pAlarmInterrupt 2    //alarm interrupt from RTC
 #define pChipSelect 10       //chip select pin for SD card
 
 //EEPROM addresses
@@ -75,9 +74,7 @@ char filename[] = "DDMMYYYY.TXT";
 SdFat sd;
 SdFile file;
 
-
 //ADC vars
-//Adafruit_ADS1115 ads1115(0x48); //address for ADDR connect to GND
 Adafruit_ADS1115 ads;
 
 /* SETUP
@@ -151,7 +148,7 @@ void setup() {
 
   //initialize the ADC
   ads.setGain(GAIN_ONE); //reset gain
-  ads.begin();  // Initialize ads1115
+  ads.begin(0x48);  // Initialize ads1115
   ads.setDataRate(RATE_ADS1115_860SPS); //set the sampling speed
   ads.readADC_SingleEnded(0); //throw one reading away. Seems to come up bad.
   bool adc_init = ads.readADC_SingleEnded(0) != -1;

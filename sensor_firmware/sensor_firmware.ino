@@ -22,7 +22,7 @@
 #include <Wire.h>               //standard library
 #include <SPI.h>                //standard library
 #include <EEPROM.h>             //standard library
-#include <Adafruit_ADS1015.h>   //Version 2.2.0  https://github.com/adafruit/Adafruit_ADS1X15
+#include <Adafruit_ADS1X15.h>   //Version 2.2.0  https://github.com/adafruit/Adafruit_ADS1X15
 #include <SdFat.h>              //Version 2.0.7 https://github.com/greiman/SdFat //uses 908 bytes of memory
 #include <DS3231.h>             //Updated Jan 2, 2017 https://github.com/kinasmith/DS3231
 
@@ -152,7 +152,7 @@ void setup() {
   //initialize the ADC
   ads.setGain(GAIN_ONE); //reset gain
   ads.begin();  // Initialize ads1115
-  ads.setSPS(ADS1115_DR_860SPS); //set the sampling speed
+  ads.setDataRate(RATE_ADS1115_860SPS); //set the sampling speed
   ads.readADC_SingleEnded(0); //throw one reading away. Seems to come up bad.
   bool adc_init = ads.readADC_SingleEnded(0) != -1;
   if(!adc_init) {

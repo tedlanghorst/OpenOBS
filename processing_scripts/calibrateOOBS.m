@@ -109,7 +109,7 @@ end
 save(fullfile(save_path,file(1:8)),"measured","standards","NTU","lm")
 
 %% look at a bunch of cal data
-cal_path = dir(fullfile(gen_path,"*","18062021.mat"));
+cal_path = dir(fullfile(gen_path,"*","03072021.mat"));
 
 sn_ignore = [10,15];
 lgd_names = {};

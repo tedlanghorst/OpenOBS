@@ -19,9 +19,8 @@ fclose(fid);
 burstID = [];
 %     timeInterp = [];
 
-
 data = readtable(filepath);
-data.R0_V = data.R0 ./ 2^15 .* 5;
+data.R0_V = data.R0 ./ 2^15 .* 5; %convert digital number to voltage
 
 data.dt = datetime(data.time, 'ConvertFrom', 'posixtime','Format','dd-MM-yyyy HH:mm:ss.SSSS');
 isWrongDay = data.dt < datetime(file(1:8),'InputFormat','ddMMyyyy');
@@ -106,7 +105,7 @@ save_path = sprintf(strcat(gen_path,"%03d"),sn);
 if ~exist(save_path, 'dir')
     mkdir(save_path)
 end
-save(fullfile(save_path,file(1:8)),"measured","standards","NTU","lm")
+save(fullfile(save_path,file(1:8)),"measured","standards","NTU","lm","data")
 
 %% look at a bunch of cal data
 cal_path = dir(fullfile(gen_path,"*","03072021.mat"));

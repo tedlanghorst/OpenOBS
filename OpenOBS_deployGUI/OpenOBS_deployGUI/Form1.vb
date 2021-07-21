@@ -76,11 +76,6 @@ Public Class Form1
     End Sub
 
     Function GetDelaySeconds() As UInt32
-        If cbContinuous.Checked Then
-            '0 delay equal to continuous setting
-            Return 0
-        End If
-
         Dim delayDT = New Date(dtpStartDate.Value.Date.Ticks +
                                dtpStartTime.Value.TimeOfDay.Ticks)
         Dim delaySeconds = (delayDT - DateTime.Now).TotalSeconds

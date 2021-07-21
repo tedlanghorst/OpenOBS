@@ -5,13 +5,9 @@
 */
 
 /*TODO
-  - find/create more stable libraries. 
-    - ADS1x15 has been refactored and new versions are incompatible
-    - DS3231 library is not the commonly used one.
-  - take background measurements to estimate daylight issues.
-  - implement error_shutdown() function to save battery.
-  - look into reading SD card data out over serial for the GUI.
-    - All files? or, list files and let GUI pick.
+  - implement error_shutdown() after startup errors
+    - set a new alarm to try again after some period. 
+      Currently OBS goes to sleep and never wakes up again.
 */
 
 /*LIBRARIES
@@ -31,10 +27,10 @@
  */
  
 //firmware data
-const char codebuild[] PROGMEM = __FILE__;  // loads the compiled source code directory & filename into a varaible
-const DateTime uploadDT = DateTime((__DATE__),(__TIME__));
+//const char codebuild[] PROGMEM = __FILE__;  //saves compiled source code directory & filename into progmem
+const DateTime uploadDT = DateTime((__DATE__),(__TIME__)); //saves compile time into progmem
 const char contactInfo[] PROGMEM = "if found, contact efe@unc.edu"; 
-const char dataColumnLabels[] PROGMEM = "time,R0,Rv,gain,temp"; //could shift to local variable in filenameUpdate() if we need more progmem
+const char dataColumnLabels[] PROGMEM = "time,R0,Rv,gain,temp";
 uint16_t serialNumber;
 
 //sampling constants
@@ -54,7 +50,7 @@ const uint16_t NUM_SAMPLES = 1000;
 //communications vars
 bool guiConnected = false;
 const uint16_t COMMS_WAIT = 500;   //ms delay to try gui connection
-const int MAX_CHAR = 40;            //max character in NMEA-style string
+const int MAX_CHAR = 60;            //max num character in messages
 char messageBuffer[MAX_CHAR];       //buffer for sending and receiving comms
 
 //data storage
@@ -76,6 +72,7 @@ SdFile file;
 
 //ADC vars
 Adafruit_ADS1115 ads;
+int gain;
 
 /* SETUP
  *  try to establish coms with GUI
@@ -179,7 +176,7 @@ void setup() {
         tmpbuf = strtok(messageBuffer,",");
         if(strcmp(tmpbuf,"$SET")!=0) break; //somehow received another message.
         tmpbuf = strtok(NULL, ",");
-        currentTime = atol(tmpbuf);      
+        currentTime = atol(tmpbuf);   
         tmpbuf = strtok(NULL, ",");
         sleepDuration_seconds = atol(tmpbuf);
         tmpbuf = strtok(NULL, "*");
@@ -196,7 +193,6 @@ void setup() {
   updateFilename();
   sprintf(messageBuffer,"FILE,OPEN,%s\0",filename);
   serialSend(messageBuffer);
-
 }
 
 
@@ -210,8 +206,7 @@ void setup() {
 
 void loop() {
   //set the next alarm right away. Check it hasn't passed later.
-  DateTime wakeTime = rtc.now(); //get the current time
-  nextAlarm = DateTime(wakeTime.unixtime() + sleepDuration_seconds);
+  nextAlarm = DateTime(rtc.now().unixtime() + sleepDuration_seconds);
   rtc.enableAlarm(nextAlarm);
   setBBSQW(); //enable battery-backed alarm
   
@@ -240,8 +235,7 @@ void loop() {
   for (int i = 0; i < NUM_SAMPLES; i++) {
     readBuffer = ads.readADC_SingleEnded(0);
 
-    int gain = 1;
-    
+    gain = 1; 
     file.print(rtc.now().unixtime());
     file.print(',');
     file.print(readBuffer);
@@ -251,14 +245,13 @@ void loop() {
     file.print(',');
     file.print(gain);
     file.print(',');
+    //only read temperature once per wake cycle.
     if (i==0){
-      file.println(rtc.getTemperature());
+      file.print(rtc.getTemperature());
     }
-    else {
-      file.println();
-    }
+    file.println();
     
-    // print some data for inspection and to blink the TX lights.
+    //occassionally print some data for inspection and to blink the TX lights.
     if ((i+1)%100==0){
       sprintf(messageBuffer,"%04u,%05d",i+1,readBuffer);
       serialSend(messageBuffer);
@@ -268,10 +261,13 @@ void loop() {
 
   //ensure a 5 second margin for the next alarm before shutting down.
   //if the alarm we set during this wake has already passed, the OBS will never wake up.
-  long alarmDelta = rtc.now().unixtime()-wakeTime.unixtime();
-  if(alarmDelta < (sleepDuration_seconds-5)){
+  long timeUntilAlarm = nextAlarm.unixtime()-rtc.now().unixtime();
+  Serial.println(timeUntilAlarm);
+  if(timeUntilAlarm > 5){
     serialSend("POWEROFF,1");
-    rtc.clearAlarm();
-    delay((sleepDuration_seconds - alarmDelta)*1000); //mimic power off.
+    rtc.clearAlarm(); //turn off battery
+    //mimic power off when provided USB power
+    delay((sleepDuration_seconds - timeUntilAlarm)*1000); 
   }
+  
 }

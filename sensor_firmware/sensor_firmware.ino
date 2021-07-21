@@ -190,6 +190,16 @@ void setup() {
       }
     }
   }
+
+  if(delayedStart_seconds>0){
+    nextAlarm = DateTime(currentTime + delayedStart_seconds);
+    rtc.enableAlarm(nextAlarm);
+    setBBSQW(); //enable battery-backed alarm
+    serialSend("POWEROFF,1");
+    rtc.clearAlarm(); //turn off battery
+    delay(delayedStart_seconds*1000);
+  }
+  
   updateFilename();
   sprintf(messageBuffer,"FILE,OPEN,%s\0",filename);
   serialSend(messageBuffer);
@@ -262,7 +272,6 @@ void loop() {
   //ensure a 5 second margin for the next alarm before shutting down.
   //if the alarm we set during this wake has already passed, the OBS will never wake up.
   long timeUntilAlarm = nextAlarm.unixtime()-rtc.now().unixtime();
-  Serial.println(timeUntilAlarm);
   if(timeUntilAlarm > 5){
     serialSend("POWEROFF,1");
     rtc.clearAlarm(); //turn off battery

@@ -1,6 +1,7 @@
 clear
 clc
 
+calPath = "/Users/Ted/GDrive/OpenOBS/Calibrations/";
 [file,path] = uigetfile('/*.TXT','Multiselect','on');
 
 %%
@@ -39,8 +40,10 @@ for i = 1:numel(sn)
     for j = find(sn(i)==file_sn)'
         tmp = [tmp; readtable(filepaths{j})];
     end
+    %convert timestamp
     tmp.dt = datetime(tmp.time, 'ConvertFrom', 'posixtime','Format','dd-MM-yyyy HH:mm:ss.SSSS');
-    tmp.R0_V = tmp.R0 ./ 2^15 .* 5; %convert int16 representation of volts to float 
+    %convert int16 DN representation of volts to float 
+    tmp.R0_V = tmp.R0 ./ 2^15 .* 5;
     
     %Loop through each burst. Identified by the temperature reading.
     measIdx = [find(~isnan(tmp.temp)); length(tmp.temp)+1];
@@ -55,20 +58,37 @@ for i = 1:numel(sn)
         end
         tmp.timeInterp(idx,1) = linspace(min(tmp.dt(idx)),max(tmp.dt(idx)),numel(tmp.dt(idx)));
         
-        burstID(idx,1) = j;
-        resampled.time(j,1) = mean(tmp.dt(idx));
-        resampled.R0_V(j,1) = median(tmp.R0_V(idx)); 
-        resampled.R0_V_sd(j,1) = std(tmp.R0_V(idx));
+        %split background and sample measurements
+        idxBackground = idx(tmp.gain(idx)==0);
+        idxSample = idx(tmp.gain(idx)~=0);
+        background = mean(tmp.R0_V(idxBackground));
+        
+        %average the sampling burst and subtract background
+        resampled.time(j,1) = mean(tmp.dt(idxSample));
+        resampled.background(j,1) = background;
+        resampled.R0_V(j,1) = mean(tmp.R0_V(idxSample))-background; 
+        resampled.R0_V_sd(j,1) = std(tmp.R0_V(idxSample));
         resampled.temp(j,1) = tmp.temp(measIdx(j));
+        burstID(idx,1) = j;
     end
     tmp.burstID = burstID;
     
+    %find and apply the most recent calibration file
+    calDir = dir(sprintf("%s%03u/*.mat",calPath,sn(i)));
+    if isempty(calDir)
+        resampled.NTU = NaN(resampled.time,1);
+    else
+        [~,mostRecent] = max([calDir.datenum]);
+        calFile = fullfile(calDir(mostRecent).folder,calDir(mostRecent).name);
+        load(calFile,"lm");
+        resampled.NTU = predict(lm,resampled.R0_V);
+        resampled.NTU_sd = predict(lm,resampled.R0_V_sd);
+    end
     
     %store tmp table in data cell array
     d{i,1} = tmp;
 end
 
-% clearvars -except sn d
 %% plots
 close all
 
@@ -77,24 +97,28 @@ set(gcf,'Units','normalized')
 set(gcf,'Position',[0.1 0.1 0.8 0.8])
 hold on
 for i = 1:numel(d)
-    legendStrings{i} = sprintf("OpenOBS %d",sn(i));
+    legendStrings{i} = sprintf("OpenOBS %03d",sn(i));
     yyaxis left
     plot(d{i}.timeInterp,d{i}.R0_V,'.')
     yyaxis right
     plot(d{i}.dt,d{i}.temp,'.')
-
-    yyaxis left
 end
 legend(legendStrings)
+title("Raw OpenOBS Data")
+yyaxis right
+ylabel("Temperature [C]")
+yyaxis left
+ylabel("Reading [Volts]")
 
 
 figure
 set(gcf,'Units','normalized')
-set(gcf,'Position',[0.1 0.1 0.8 0.8])
+set(gcf,'Position',[0.3 0.3 0.5 0.4])
 hold on
 for i = 1:numel(d)
-    plot(resampled.time,resampled.R0_V,'.')
+    plot(resampled.time,resampled.NTU,'.')
 end
-
-
+legend(legendStrings)
+title("Lab Calibrated NTUs")
+ylabel('NTU')
 

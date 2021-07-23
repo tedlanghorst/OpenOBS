@@ -7,9 +7,11 @@ void updateFilename(){
   //if we create a new file with this name, set header
   if (file.open(filename, O_CREAT | O_EXCL | O_WRITE)) {
     
+    snprintf(messageBuffer, 11, "%02u/%02u/%04u", uploadDT.date(), uploadDT.month(), uploadDT.year());
+    
     file.println((__FlashStringHelper*)contactInfo);
-    file.print(F("Running: "));
-    file.println((__FlashStringHelper*)codebuild); // writes the entire path + filename to the start of the data file
+    file.print(F("Firmware updated: "));
+    file.println(messageBuffer);
     file.print("OpenOBS SN:");
     file.println(serialNumber);
     file.println();

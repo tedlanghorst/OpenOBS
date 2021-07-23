@@ -25,4 +25,3 @@ C:\Users\Ted\Documents\GitHub\OpenOBS\OpenOBS_deployGUI\OpenOBS_deployGUI\obj\De
 C:\Users\Ted\Documents\GitHub\OpenOBS\OpenOBS_deployGUI\OpenOBS_deployGUI\obj\Debug\net5.0-windows\ref\OpenOBS_deployGUI.dll
 C:\Users\Ted\Documents\GitHub\OpenOBS\OpenOBS_deployGUI\OpenOBS_deployGUI\obj\Debug\net5.0-windows\OpenOBS_deployGUI.pdb
 C:\Users\Ted\Documents\GitHub\OpenOBS\OpenOBS_deployGUI\OpenOBS_deployGUI\obj\Debug\net5.0-windows\OpenOBS_deployGUI.genruntimeconfig.cache
-C:\Users\Ted\Documents\GitHub\OpenOBS\OpenOBS_deployGUI\OpenOBS_deployGUI\obj\Debug\net5.0-windows\OpenOBS_deployGUI.vbprojAssemblyReference.cache

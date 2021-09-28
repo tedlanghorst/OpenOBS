@@ -4,7 +4,6 @@ clc
 calPath = "/Users/Ted/GDrive/OpenOBS/Calibrations/";
 [file,path] = uigetfile('/*.TXT','Multiselect','on');
 
-%%
 
 %assemble cell array of the selected file paths
 if isa(file,'cell')
@@ -61,14 +60,20 @@ for i = 1:numel(sn)
         %split background and sample measurements
         idxBackground = idx(tmp.gain(idx)==0);
         idxSample = idx(tmp.gain(idx)~=0);
-        background = mean(tmp.R0_V(idxBackground));
+        background = median(tmp.R0_V(idxBackground));
         
-        %average the sampling burst and subtract background
+        %average the sampling burst and filter high background meas.
         resampled.time(j,1) = mean(tmp.dt(idxSample));
         resampled.background(j,1) = background;
-        resampled.R0_V(j,1) = mean(tmp.R0_V(idxSample))-background; 
-        resampled.R0_V_sd(j,1) = std(tmp.R0_V(idxSample));
         resampled.temp(j,1) = tmp.temp(measIdx(j));
+        
+        if background>0.1
+            resampled.R0_V(j,1) = NaN;
+            resampled.R0_V_sd(j,1) = NaN;
+        else
+            resampled.R0_V(j,1) = median(tmp.R0_V(idxSample))-background; 
+            resampled.R0_V_sd(j,1) = std(tmp.R0_V(idxSample));
+        end
         burstID(idx,1) = j;
     end
     tmp.burstID = burstID;
@@ -88,8 +93,8 @@ for i = 1:numel(sn)
     %store tmp table in data cell array
     d{i,1} = tmp;
 end
-
-%% plots
+%%
+% plots
 close all
 
 figure

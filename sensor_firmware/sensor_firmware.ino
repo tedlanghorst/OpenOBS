@@ -241,7 +241,7 @@ void loop() {
   serialSend(messageBuffer);
 
   //illuminated measurements
-  digitalWrite(pIRED, HIGH);
+  digitalWrite(pIRED, HIGH); //turn on the IRED
   for (int i = 0; i < NUM_SAMPLES; i++) {
     readBuffer = ads.readADC_SingleEnded(0);
 
@@ -267,8 +267,10 @@ void loop() {
       serialSend(messageBuffer);
     }
   }
+  digitalWrite(pIRED, LOW); //turn off the IRED
   file.close();
-
+  delay(1000);
+  
   //ensure a 5 second margin for the next alarm before shutting down.
   //if the alarm we set during this wake has already passed, the OBS will never wake up.
   long timeUntilAlarm = nextAlarm.unixtime()-rtc.now().unixtime();

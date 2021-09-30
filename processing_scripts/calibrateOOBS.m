@@ -61,7 +61,6 @@ for j = 1:numel(burstIDs)
 end
 
 % clearvars -except sn data file
-
 close all
 
 figure
@@ -69,8 +68,8 @@ colormap flag
 set(gcf,'Units','normalized')
 set(gcf,'Position',[0.1 0.1 0.8 0.6])
 hold on
-% scatter(data.timeInterp,data.R0_V,10,data.gain,'filled')
-plot(time,measured,'b.','markersize',10);
+scatter(data.timeInterp,data.R0_V,10,data.gain,'filled')
+% plot(time,measured,'b.','markersize',10);
 title(sprintf("Serial no. %03d", sn))
 zoom on
 
@@ -85,12 +84,12 @@ close all
 
 gen_path = "/Users/Ted/GDrive/OpenOBS/Calibrations/";
 
-standards = [0,20,100,500,1000];
+standards = [0,100,500,1000];
 measured = [mean(a(:,2)), std(a(:,2)); 
         mean(b(:,2)), std(b(:,2)); 
         mean(c(:,2)), std(c(:,2)); 
-        mean(d(:,2)), std(d(:,2)); 
-        mean(e(:,2)), std(e(:,2))];
+        mean(d(:,2)), std(d(:,2))]; 
+%         mean(e(:,2)), std(e(:,2))];
 
 lm = fitlm(measured(:,1),standards);
 NTU = predict(lm,measured(:,1));
@@ -108,9 +107,10 @@ end
 save(fullfile(save_path,file(1:8)),"measured","standards","NTU","lm","data")
 
 %% look at a bunch of cal data
-cal_path = dir(fullfile(gen_path,"*","03072021.mat"));
+date_string = "23092021";
+sn_ignore = [];
 
-sn_ignore = [10,15];
+cal_path = dir(fullfile(gen_path,"*",date_string+".mat"));
 lgd_names = {};
 
 close all
@@ -165,6 +165,8 @@ plot(xlim,[0,0],'k--','Linewidth',1)
 
 set(gcf,'Units','normalized')
 set(gcf,'Position',[0.3 0.4 0.4 0.3]);
+
+saveas(gcf,fullfile(gen_path,"calibration_"+date_string+".png"))
 
 
 % lims = get(gca,'XLim') + [-50,50];

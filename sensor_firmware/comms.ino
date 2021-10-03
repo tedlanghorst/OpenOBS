@@ -1,4 +1,4 @@
-/*function reads in the available serial data, parses for an NMEA-style sentence, 
+/*function reads in the available serial data, checks for an NMEA-style sentence, 
    * and verifies the checksum. The function returns the result of the checksum and 
    * the sentence is stored in the pointer argument for later parsing.
   */
@@ -15,7 +15,7 @@ bool serialReceive(char *sentence){
     }
   }
 
-  //collect NMEA-style string
+  //look for NMEA-style string
   idx = 1; //if we get here, $ is at idx 0.
   int idxChk = MAX_CHAR-2;
   while(Serial.available()>0 && idx<=idxChk+2){

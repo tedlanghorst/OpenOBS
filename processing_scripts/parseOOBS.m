@@ -67,7 +67,7 @@ for i = 1:numel(sn)
         resampled.background(j,1) = background;
         resampled.temp(j,1) = tmp.temp(measIdx(j));
         
-        if background>0.1
+        if background>0.05
             resampled.R0_V(j,1) = NaN;
             resampled.R0_V_sd(j,1) = NaN;
         else

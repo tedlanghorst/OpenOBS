@@ -274,12 +274,12 @@ void loop() {
   }
   digitalWrite(pIRED, LOW); //turn off the IRED
   file.close();
-  delay(1000); //give the SD card enough time to close the file and reshuffle data.
   
   //ensure a 5 second margin for the next alarm before shutting down.
   //if the alarm we set during this wake has already passed, the OBS will never wake up.
   long timeUntilAlarm = nextAlarm.unixtime()-rtc.now().unixtime();
   if(timeUntilAlarm > 5){
+    delay(1000); //give the SD card enough time to close the file and reshuffle data.
     serialSend("POWEROFF,1");
     rtc.clearAlarm(); //turn off battery
     //mimic power off when provided USB power

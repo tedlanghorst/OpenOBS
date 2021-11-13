@@ -1,13 +1,13 @@
 //Check if the daily file exists already. If not, create one and write headers.
 void updateFilename(){
   DateTime now = rtc.now();
-  snprintf(filename, 13, "%02u%02u%04u.TXT", now.date(), now.month(), now.year());
+  snprintf(filename, 13, "%04u%02u%02u.TXT", now.year(), now.month(), now.date());
 
   SdFile::dateTimeCallback(dateTime_callback);
   //if we create a new file with this name, set header
   if (file.open(filename, O_CREAT | O_EXCL | O_WRITE)) {
     
-    snprintf(messageBuffer, 11, "%02u/%02u/%04u", uploadDT.date(), uploadDT.month(), uploadDT.year());
+    snprintf(messageBuffer, 11, "%04u/%02u/%02u", uploadDT.year(), uploadDT.month(), uploadDT.date());
     
     file.println((__FlashStringHelper*)contactInfo);
     file.print(F("Firmware updated: "));
@@ -16,9 +16,6 @@ void updateFilename(){
     file.println(serialNumber);
     file.println();
     file.println((__FlashStringHelper*)dataColumnLabels);
-    //Note: SD cards can continue drawing system power for up to 1 second after file close command
-//    file.close();
-//    delay(1000);
     }
 }
 
@@ -32,10 +29,6 @@ void dateTime_callback(uint16_t* date, uint16_t* time) {
   *time = FAT_TIME(now.hour(), now.minute(), now.second());
 }
 
-
-/*
-   interrupt functions
-*/
 //enable alarm on battery power. Normally disabled
 void setBBSQW(){
   uint8_t ctReg = rtc.readRegister(DS3231_CONTROL_REG);

@@ -5,9 +5,7 @@
 */
 
 /*TODO
-  - implement error_shutdown() after startup errors
-    - set a new alarm to try again after some period. 
-      Currently OBS goes to sleep and never wakes up again.
+
 */
 
 /*LIBRARIES
@@ -27,10 +25,9 @@
  */
  
 //firmware data
-//const char codebuild[] PROGMEM = __FILE__;  //saves compiled source code directory & filename into progmem
 const DateTime uploadDT = DateTime((__DATE__),(__TIME__)); //saves compile time into progmem
 const char contactInfo[] PROGMEM = "if found, contact efe@unc.edu"; 
-const char dataColumnLabels[] PROGMEM = "time,R0,Rv,gain,temp";
+const char dataColumnLabels[] PROGMEM = "time,millis,R0,gain,temp";
 uint16_t serialNumber;
 
 //sampling constants
@@ -58,6 +55,7 @@ int16_t readBuffer;
 float rtc_TEMP;
 
 //time settings
+unsigned long millisTime;
 long currentTime = 0;
 long sleepDuration_seconds = 15;
 long delayedStart_seconds = 0;
@@ -92,8 +90,8 @@ void setup() {
   EEPROM.get(SN_ADDRESS, serialNumber);
 
   
-  /* With power  switching between measurements, we need to know what kind of setup() this is.
-   *  First, check if the firmware upload time is different than the stored time.
+  /* With power switching between measurements, we need to know what kind of setup() this is.
+   *  First, check if the firmware was updated.
    *  Next, check if the GUI connection forced a reset.
    *  If neither, we assume this is a power cycle during deployment and use stored settings.
    */
@@ -138,6 +136,7 @@ void setup() {
   if(!sd_init) {
     serialSend("SDINIT,0");
   }
+  
   //initialize the RTC
   if(!clk_init) {
     serialSend("CLKINIT,0");
@@ -153,13 +152,18 @@ void setup() {
     serialSend("ADCINIT,0");
   }
 
-  //turn off battery power and stop program.
-  //should set another alarm to try again- 
-  //intermittent issues shouldnt end entire deploy.
-  //RTC errors likely are fatal though.
+  //if we had any errors turn off battery power and stop program.
+  //set another alarm to try again- intermittent issues shouldnt end entire deploy.
+  //RTC errors likely are fatal though. Will it even wake if RTC fails?
   if(!sd_init | !clk_init | !adc_init){
-    rtc.clearAlarm();
-    while(true);
+    //set a new timer
+    nextAlarm = DateTime(rtc.now().unixtime() + sleepDuration_seconds);
+    rtc.enableAlarm(nextAlarm);
+    setBBSQW(); //enable battery-backed alarm
+    delay(100); //ensure the alarm is set
+    
+    rtc.clearAlarm(); //turn off the power
+    while(true); //stop program if we have another power source
   }
   
   //if we have established a connection to the java gui, 
@@ -167,10 +171,11 @@ void setup() {
   //otherwise, use the settings from EEPROM.
   if(guiConnected){
     serialSend("READY");
-    //wait while user picks settings and clicks 'send' button.
+    //wait indefinitely while user picks settings and clicks 'send' button.
     while(true){
       delay(100); 
       if(serialReceive(&messageBuffer[0])){
+        //if we receive a message, start parsing the inividual words
         //hardcoded order of settings string.
         char *tmpbuf;
         tmpbuf = strtok(messageBuffer,",");
@@ -191,13 +196,15 @@ void setup() {
     }
   }
 
+  //if we received a delayed start, 
   if(delayedStart_seconds>0){
     nextAlarm = DateTime(currentTime + delayedStart_seconds);
     rtc.enableAlarm(nextAlarm);
     setBBSQW(); //enable battery-backed alarm
     serialSend("POWEROFF,1");
+    delay(100); //ensure the alarm is set
     rtc.clearAlarm(); //turn off battery
-    delay(delayedStart_seconds*1000);
+    delay(delayedStart_seconds*1000); //delay program if we have another power source
   }
   
   updateFilename();
@@ -209,7 +216,7 @@ void setup() {
 /* LOOP
  *  set the next alarm
  *  open the SD card file
- *  read ADC and write to SD
+ *  read sensor and write to SD
  *  close the SD file.
  *  go to sleep (unless continuous mode)
  */
@@ -222,6 +229,7 @@ void loop() {
   
   digitalWrite(pVoltageDivider,HIGH);
 
+  millisTime = millis();
   //background measurements
   digitalWrite(pIRED,LOW);
   file.open(filename,O_WRITE | O_APPEND);
@@ -229,12 +237,17 @@ void loop() {
     readBuffer = ads.readADC_SingleEnded(0);
     file.print(rtc.now().unixtime());
     file.print(',');
+    file.print(millis() - millisTime);
+    file.print(',');
     file.print(readBuffer);
     file.print(',');
     file.print(0);
     file.print(',');
-    file.print(0);
-    file.println(',');
+    //only read temperature once per wake cycle.
+    if (i==0){
+      file.print(rtc.getTemperature());
+    }
+    file.println();
   }
 
   sprintf(messageBuffer,"%04u,%05d",0,readBuffer);
@@ -243,23 +256,16 @@ void loop() {
   //illuminated measurements
   digitalWrite(pIRED, HIGH); //turn on the IRED
   for (int i = 0; i < NUM_SAMPLES; i++) {
-    readBuffer = ads.readADC_SingleEnded(0);
-
     gain = 1; 
+    readBuffer = ads.readADC_SingleEnded(0);
     file.print(rtc.now().unixtime());
+    file.print(',');
+    file.print(millis() - millisTime);
     file.print(',');
     file.print(readBuffer);
     file.print(',');
-    file.print(0);
-//    file.print(ads.readADC_SingleEnded(gain));
-    file.print(',');
     file.print(gain);
-    file.print(',');
-    //only read temperature once per wake cycle.
-    if (i==0){
-      file.print(rtc.getTemperature());
-    }
-    file.println();
+    file.println(',');
     
     //occassionally print some data for inspection and to blink the TX lights.
     if ((i+1)%100==0){
@@ -269,12 +275,12 @@ void loop() {
   }
   digitalWrite(pIRED, LOW); //turn off the IRED
   file.close();
-  delay(1000);
   
   //ensure a 5 second margin for the next alarm before shutting down.
   //if the alarm we set during this wake has already passed, the OBS will never wake up.
   long timeUntilAlarm = nextAlarm.unixtime()-rtc.now().unixtime();
   if(timeUntilAlarm > 5){
+    delay(1000); //give the SD card enough time to close the file and reshuffle data.
     serialSend("POWEROFF,1");
     rtc.clearAlarm(); //turn off battery
     //mimic power off when provided USB power

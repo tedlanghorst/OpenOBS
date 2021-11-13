@@ -136,6 +136,7 @@ void setup() {
   if(!sd_init) {
     serialSend("SDINIT,0");
   }
+  
   //initialize the RTC
   if(!clk_init) {
     serialSend("CLKINIT,0");

@@ -45,16 +45,9 @@ for i = 1:numel(sn)
     tmp.R0_V = tmp.R0 ./ 2^15 .* 5;
     
     %Loop through each burst. Identified by the temperature reading.
-    measIdx = [find(~isnan(tmp.temp)); length(tmp.temp)+1];
+    measIdx = [find(~isnan(tmp.temp)); length(tmp.temp)+1];    
     for j = 1:numel(measIdx)-1
-        %-100 on first idx is an unfortunate kluge to correct for the 100
-        %background measurements taken each burst before the temperature
-        %reading that is used to mark the burst.
-        if j ~= numel(measIdx)-1
-             idx = measIdx(j)-100:measIdx(j+1)-101;
-        else
-            idx = measIdx(j)-100:measIdx(j+1)-1;
-        end
+        idx = measIdx(j):measIdx(j+1)-1;
         tmp.timeInterp(idx,1) = linspace(min(tmp.dt(idx)),max(tmp.dt(idx)),numel(tmp.dt(idx)));
         
         %split background and sample measurements

@@ -27,7 +27,7 @@
 //firmware data
 const DateTime uploadDT = DateTime((__DATE__),(__TIME__)); //saves compile time into progmem
 const char contactInfo[] PROGMEM = "if found, contact efe@unc.edu"; 
-const char dataColumnLabels[] PROGMEM = "time,millis,R0,gain,temp";
+const char dataColumnLabels[] PROGMEM = "time,millis,R0,gain,temp,batt";
 uint16_t serialNumber;
 
 //sampling constants
@@ -53,6 +53,8 @@ char messageBuffer[MAX_CHAR];       //buffer for sending and receiving comms
 //data storage
 int16_t readBuffer;
 float rtc_TEMP;
+int batteryValue;
+float batteryVolts;
 
 //time settings
 unsigned long millisTime;
@@ -226,6 +228,14 @@ void loop() {
   nextAlarm = DateTime(rtc.now().unixtime() + sleepDuration_seconds);
   rtc.enableAlarm(nextAlarm);
   setBBSQW(); //enable battery-backed alarm
+
+  //read in battery level
+  batteryValue = analogRead(A0);
+  //convert to Volts and multiply by 2 because of the voltage divider
+  batteryVolts = batteryValue * (2.0 * 5.0 / 1023.0); 
+  Serial.print("Battery: ");
+  Serial.print(batteryVolts);
+  Serial.println("V");
   
   digitalWrite(pVoltageDivider,HIGH);
 
@@ -246,6 +256,8 @@ void loop() {
     //only read temperature once per wake cycle.
     if (i==0){
       file.print(rtc.getTemperature());
+      file.print(',');
+      file.print(batteryValue);
     }
     file.println();
   }
@@ -265,6 +277,7 @@ void loop() {
     file.print(readBuffer);
     file.print(',');
     file.print(gain);
+    file.print(',');
     file.println(',');
     
     //occassionally print some data for inspection and to blink the TX lights.

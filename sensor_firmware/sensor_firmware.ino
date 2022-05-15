@@ -54,7 +54,6 @@ char messageBuffer[MAX_CHAR];       //buffer for sending and receiving comms
 int16_t readBuffer;
 float rtc_TEMP;
 int batteryValue;
-float batteryVolts;
 
 //time settings
 unsigned long millisTime;
@@ -75,10 +74,10 @@ Adafruit_ADS1115 ads;
 int gain;
 
 /* SETUP
- *  try to establish coms with GUI
- *  initiate components
- *  wait for settings or use default
- *  create text file
+ *  Try to establish coms with GUI.
+ *  Initiate the components.
+ *  Wait for settings or use default.
+ *  Create a text file.
  */
 
 void setup() {
@@ -232,10 +231,7 @@ void loop() {
   //read in battery level
   batteryValue = analogRead(A0);
   //convert to Volts and multiply by 2 because of the voltage divider
-  batteryVolts = batteryValue * (2.0 * 5.0 / 1023.0); 
-  Serial.print("Battery: ");
-  Serial.print(batteryVolts);
-  Serial.println("V");
+//  batteryVolts = batteryValue * (2.0 * 5.0 / 1023.0); 
   
   digitalWrite(pVoltageDivider,HIGH);
 

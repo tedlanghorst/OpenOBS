@@ -23,9 +23,9 @@ data = readtable(filepath);
 data.R0_V = data.R0 ./ 2^15 .* 5; %convert digital number to voltage
 
 data.dt = datetime(data.time, 'ConvertFrom', 'posixtime','Format','dd-MM-yyyy HH:mm:ss.SSSS');
-isWrongDay = data.dt < datetime(file(1:8),'InputFormat','ddMMyyyy');
+isWrongDay = data.dt < datetime(file(1:8),'InputFormat','yyyyMMdd');
 data(isWrongDay,:) = [];
-isWrongDay = data.dt > datetime(file(1:8),'InputFormat','ddMMyyyy') + 1;
+isWrongDay = data.dt > datetime(file(1:8),'InputFormat','yyyyMMdd') + 1;
 data(isWrongDay,:) = [];
 
 %loop through the bursts
@@ -34,10 +34,6 @@ for j = 1:numel(measIdx)-1
     idx = measIdx(j):measIdx(j+1)-1;
     data.burstID(idx,1) = j-1;
     data.timeInterp(idx,1) = linspace(min(data.dt(idx)),max(data.dt(idx)),numel(data.dt(idx)));
-    
-%     idx_background = 
-%     
-%     background = data.R0(
 end 
 
 %resample
@@ -82,14 +78,14 @@ zoom on
 %}
 close all
 
-gen_path = "/Users/Ted/GDrive/OpenOBS/Calibrations/";
+gen_path = "/Users/Ted/GDrive/OpenOBS/Calibrations_v2/";
 
-standards = [0,100,500,1000];
+standards = [0,100,250,500,1000];
 measured = [mean(a(:,2)), std(a(:,2)); 
         mean(b(:,2)), std(b(:,2)); 
         mean(c(:,2)), std(c(:,2)); 
-        mean(d(:,2)), std(d(:,2))]; 
-%         mean(e(:,2)), std(e(:,2))];
+        mean(d(:,2)), std(d(:,2)); 
+        mean(e(:,2)), std(e(:,2))];
 
 lm = fitlm(measured(:,1),standards);
 NTU = predict(lm,measured(:,1));
@@ -107,10 +103,10 @@ end
 save(fullfile(save_path,file(1:8)),"measured","standards","NTU","lm","data")
 
 %% look at a bunch of cal data
-date_string = "23092021";
+date_string = "20220515";
 sn_ignore = [];
 
-cal_path = dir(fullfile(gen_path,"*",date_string+".mat"));
+cal_path = dir(fullfile(gen_path,"015",date_string+".mat"));
 lgd_names = {};
 
 close all
@@ -146,8 +142,8 @@ ylabel("Measured (Volts)");
 title('Raw Signal')
 axis square
 box on
-lgd = legend(lgd_names,'Location','NorthWest');
-title(lgd,"S/N")
+% lgd = legend(lgd_names,'Location','NorthWest');
+% title(lgd,"S/N")
 
 subplot(1,2,2)
 xlabel("Standard (NTU)");
@@ -155,7 +151,7 @@ ylabel("Calibration - Standard (NTU)");
 title('Calibration Error')
 axis square
 box on
-set(gca,'XScale','log')
+% set(gca,'XScale','log')
 xlim = get(gca,'XLim');
 plot(xlim,[0,0],'k--','Linewidth',1)
 

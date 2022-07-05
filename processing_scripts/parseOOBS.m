@@ -60,11 +60,11 @@ for i = 1:numel(sn)
         resampled.background(j,1) = background;
         resampled.temp(j,1) = tmp.temp(measIdx(j));
         
-        if background>0.05
+        if background>6
             resampled.R0_V(j,1) = NaN;
             resampled.R0_V_sd(j,1) = NaN;
         else
-            resampled.R0_V(j,1) = median(tmp.R0_V(idxSample))-background; 
+            resampled.R0_V(j,1) = median(tmp.R0_V(idxSample));%-background; 
             resampled.R0_V_sd(j,1) = std(tmp.R0_V(idxSample));
         end
         burstID(idx,1) = j;
@@ -95,9 +95,11 @@ set(gcf,'Units','normalized')
 set(gcf,'Position',[0.1 0.1 0.8 0.8])
 hold on
 for i = 1:numel(d)
+    isBackground = d{i}.gain==0;
     legendStrings{i} = sprintf("OpenOBS %03d",sn(i));
     yyaxis left
-    plot(d{i}.timeInterp,d{i}.R0_V,'.')
+    plot(d{i}.timeInterp(isBackground),d{i}.R0_V(isBackground),'r.')
+    plot(d{i}.timeInterp(~isBackground),d{i}.R0_V(~isBackground),'b.')
     yyaxis right
     plot(d{i}.dt,d{i}.temp,'.')
 end
@@ -114,7 +116,7 @@ set(gcf,'Units','normalized')
 set(gcf,'Position',[0.3 0.3 0.5 0.4])
 hold on
 for i = 1:numel(d)
-    plot(resampled.time,resampled.NTU,'.')
+    plot(resampled.time,resampled.R0_V,'.')
 end
 legend(legendStrings)
 title("Lab Calibrated NTUs")

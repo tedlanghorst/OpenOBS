@@ -9,9 +9,11 @@
 | Battery clip                |                                                         | $1.50     | 1           | $1.50      |
 | AA Battery                  | Any 1.2-1.6V nominal AA battery.                        |           | 2           |            |
 | NIR emitting diode          | VSMF4720-GS08                                           | $0.82     | 1           | $0.82      |
+| NIR emitting diode alternative| SIR67-21C/TR8                                         | 0.64      | 1           | 0.64       |
 | NIR photodiode              | SFH 235 FA                                              | $1.34     | 1           | $1.34      |
 | Op amp                      | MCP6244                                                 | $0.63     | 1           | $0.63      |
-| Mosfet battery switch       | SI2329DS-T1-GE3                                         | $0.62     | 1           | $0.62      |
+| MOSFET battery switch       | SI2329DS-T1-GE3                                         | $0.62     | 1           | $0.62      |
+| MOSFET battery switch alternative| SSSM3J56MFV,L3F                                    | $0.47     | 1           | $0.47      |
 | 0.1  μF capacitor           | generic ceramic disc                                    | $0.24     | 1           | $0.24      |
 | 22 pF capacitor             | generic cermaic disc                                    | $0.24     | 1           | $0.24      |
 | NPN transistor              | 2n3904                                                  | $0.05     | 2           | $0.10      |

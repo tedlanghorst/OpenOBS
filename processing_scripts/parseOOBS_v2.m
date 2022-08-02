@@ -43,7 +43,7 @@ for j = 1:numel(measIdx)-1
     background = median(d.R0_V(idxBackground));
     
     rs.time(j,1) = mean(d.time(idxSample));
-    if background>0.5
+    if background>0.1
         rs.R0_V(j,1) = NaN;
         rs.R0_V_sd(j,1) = NaN;
     else
@@ -51,9 +51,15 @@ for j = 1:numel(measIdx)-1
         rs.R0_V_sd(j,1) = std(d.R0_V(idxSample));
     end
 end
+[rs.time,sortIdx] = sort(rs.time); %investigate why this is necessary.
+rs.R0_V = rs.R0_V(sortIdx);
+rs.R0_V_sd = rs.R0_V_sd(sortIdx);
+
 %convert timestamp
 d.dt = datetime(d.timePlusMillis, 'ConvertFrom', 'posixtime','Format','dd-MM-yyyy HH:mm:ss.SSSS');
 rs.dt = datetime(rs.time, 'ConvertFrom', 'posixtime','Format','dd-MM-yyyy HH:mm:ss.SSSS');
+
+
 
 
 %find and apply the most recent calibration file
@@ -67,6 +73,9 @@ else
     rs.NTU = predict(lm,rs.R0_V);
     rs.NTU_sd = predict(lm,rs.R0_V_sd);
 end
+
+rs.sn = sn;
+save([path 'parsedData.mat'],"rs");
 
 % plots
 close all
@@ -96,7 +105,7 @@ yyaxis left %for zoom control
 figure
 set(gcf,'Units','normalized')
 set(gcf,'Position',[0.3 0.3 0.5 0.4])
-plot(rs.dt,rs.R0_V,'.')
+plot(rs.dt,rs.R0_V,'-')
 title("Resampled measurements with background removed")
 ylabel("Burst average - background [V]")
 

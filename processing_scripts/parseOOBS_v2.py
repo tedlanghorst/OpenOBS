@@ -27,19 +27,16 @@ for f in filenames:
         else:
             print('\nWARNING: missing header from file \"{filename}\"\n'.format(filename=f))
             continue
-        
     
 #check if we have matching serial numbers
 nUniqueSN = len(set(snList))
 if  nUniqueSN == 0:
     raise SystemExit('ERROR: No valid files found')
 if nUniqueSN > 1:
-    # print('Multiple SNs found: {SNs}'.format(SNs=snList))
-    raise SystemExit('ERROR: Multiple SNs found: {SNs}'.format(SNs=snList))
+    raise SystemExit(f'ERROR: Multiple SNs found: {snList}')
 
 #read all the data into one dataframe
 df = pd.concat((pd.read_csv(f,header=3) for f in goodFileList))
-
 
 # %% process the data
 
